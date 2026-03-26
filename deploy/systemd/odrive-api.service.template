@@ -1,0 +1,23 @@
+[Unit]
+Description=ODrive Robot API (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__ODRIVE_API_USER__
+Group=__ODRIVE_API_GROUP__
+WorkingDirectory=__ODRIVE_API_APP_DIR__
+EnvironmentFile=-/etc/default/odrive-api
+ExecStart=__ODRIVE_API_APP_DIR__/scripts/run_uvicorn.sh
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=20
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
