@@ -17,7 +17,7 @@ Canonical planning/execution docs:
 - `docs/RUNBOOK.md`
 
 ## Stack
-- Python 3.11+
+- Python 3.10+
 - FastAPI
 - Uvicorn
 - python-can
@@ -34,7 +34,7 @@ Canonical planning/execution docs:
 cd /home/trana/Development/odrive_api
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install ".[dev]"
 uvicorn odrive_api.main:app --host 127.0.0.1 --port 8100 --reload
 ```
 

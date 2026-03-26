@@ -7,7 +7,7 @@ name = "odrive-api"
 version = "0.1.0"
 description = "Robot-side FastAPI service for querying and setting ODrive CAN settings."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
   "fastapi>=0.115.0,<1.0.0",
   "pydantic>=2.7.0,<3.0.0",

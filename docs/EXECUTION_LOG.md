@@ -184,3 +184,17 @@ Artifacts Updated
 Test Evidence
 - `pytest -q tests/test_config.py tests/test_api.py`
   - Result in this environment: `4 passed, 1 skipped` (`test_api.py` skipped when FastAPI is not installed in active interpreter)
+
+## 2026-03-26 - Python 3.10 Compatibility + Install Flow Fix
+Summary
+- Relaxed runtime Python requirement from `>=3.11` to `>=3.10` for Ubuntu robot compatibility.
+- Updated install docs to use non-editable install (`pip install ".[dev]"`) to avoid legacy pip editable-mode failures on robot images.
+
+Artifacts Updated
+- `pyproject.toml`
+- `README.md`
+- `docs/RUNBOOK.md`
+
+Test Evidence
+- `pytest -q`
+  - Result in this environment: `12 passed, 2 skipped`
