@@ -21,6 +21,26 @@ class FakeService:
         self.raise_on_write = None
         self.raise_on_save = None
         self.raise_on_reboot = None
+        self.endpoint_catalog = [
+            {
+                "path": "vbus_voltage",
+                "id": 1,
+                "type": "float",
+                "readable": True,
+                "writable": True,
+                "inputs": None,
+                "outputs": None,
+            },
+            {
+                "path": "save_configuration",
+                "id": 23,
+                "type": "function",
+                "readable": False,
+                "writable": False,
+                "inputs": [],
+                "outputs": [],
+            },
+        ]
 
     def start(self):
         self.started = True
@@ -39,6 +59,9 @@ class FakeService:
 
     def list_nodes(self):
         return list(self.nodes)
+
+    def list_endpoint_catalog(self):
+        return list(self.endpoint_catalog)
 
     def read_many(self, node_id: int, paths: list[str], timeout_s=None):
         if self.raise_on_read is not None:
@@ -86,6 +109,45 @@ def test_nodes_endpoint_returns_allowlist():
 
     assert response.status_code == 200
     assert response.json() == {"nodes": [11, 12]}
+
+
+def test_endpoints_endpoint_returns_catalog():
+    service = FakeService()
+    app = create_app(service=service)
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/odrive/endpoints")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "endpoints" in payload
+    assert len(payload["endpoints"]) == 2
+    assert payload["endpoints"][0]["path"] == "vbus_voltage"
+    assert payload["endpoints"][0]["readable"] is True
+    assert payload["endpoints"][1]["type"] == "function"
+
+
+def test_endpoints_endpoint_auth_required_when_token_configured():
+    service = FakeService()
+    settings = ODriveApiSettings(
+        can_iface="can0",
+        can_bustype="socketcan",
+        endpoints_json=Path("flat_endpoints.json"),
+        allowed_node_ids=(11, 12),
+        request_timeout_s=0.25,
+        max_paths_per_request=64,
+        max_write_items=32,
+        float_abs_tol=1e-5,
+        float_rel_tol=1e-5,
+        api_token="secret-token",
+    )
+    app = create_app(settings=settings, service=service)
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/odrive/endpoints")
+
+    assert response.status_code == 401
+    assert response.json()["detail"]["code"] == "ODRIVE_AUTH_REQUIRED"
 
 
 def test_cors_preflight_allows_browser_origin_for_odrive_routes():

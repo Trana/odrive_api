@@ -198,3 +198,20 @@ Artifacts Updated
 Test Evidence
 - `pytest -q`
   - Result in this environment: `12 passed, 2 skipped`
+
+## 2026-03-27 - Endpoint Catalog API For UI Path Lookup
+Summary
+- Added `/api/v1/odrive/endpoints` endpoint to expose endpoint metadata from loaded `flat_endpoints.json`.
+- Response now includes endpoint path, ID, type, and UI-friendly read/write capability flags.
+- Added API coverage for catalog route behavior and auth gating.
+
+Artifacts Updated
+- `src/odrive_api/models.py`
+- `src/odrive_api/services/odrive_service.py`
+- `src/odrive_api/main.py`
+- `tests/test_api.py`
+- `README.md`
+
+Test Evidence
+- `pytest -q tests/test_api.py tests/test_service.py`
+  - Result in this environment: `8 passed, 1 skipped`

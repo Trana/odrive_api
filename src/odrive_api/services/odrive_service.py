@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from odrive_api.config import ODriveApiSettings
-from odrive_api.odrive_client import Endpoint, ODriveClient, load_endpoints
+from odrive_api.odrive_client import Endpoint, FORMAT_LOOKUP, ODriveClient, load_endpoints
 
 
 BusFactory = Callable[[str, str], Any]
@@ -24,6 +24,8 @@ _INT_RANGES: dict[str, tuple[int, int]] = {
     "uint64": (0, 2**64 - 1),
     "int64": (-(2**63), 2**63 - 1),
 }
+_READABLE_TYPES = frozenset(FORMAT_LOOKUP.keys())
+_SETTINGS_WRITABLE_TYPES = frozenset({"bool", "float", *_INT_RANGES.keys()})
 
 
 class ReadbackMismatchError(ValueError):
@@ -167,6 +169,38 @@ class ODriveService:
 
     def list_nodes(self) -> list[int]:
         return list(self.settings.allowed_node_ids)
+
+    def list_endpoint_catalog(self) -> list[dict[str, Any]]:
+        client = self._require_client()
+
+        raw_endpoints: dict[str, Any] = {}
+        meta = client.endpoint_meta
+        if isinstance(meta, dict):
+            nested = meta.get("endpoints", {})
+            if isinstance(nested, dict):
+                raw_endpoints = nested
+
+        payload: list[dict[str, Any]] = []
+        for path in sorted(client.endpoints.keys()):
+            endpoint = client.endpoints[path]
+            raw = raw_endpoints.get(path, {})
+            if not isinstance(raw, dict):
+                raw = {}
+
+            inputs = raw.get("inputs")
+            outputs = raw.get("outputs")
+            payload.append(
+                {
+                    "path": path,
+                    "id": int(endpoint.id),
+                    "type": str(endpoint.typ),
+                    "readable": endpoint.typ in _READABLE_TYPES,
+                    "writable": endpoint.typ in _SETTINGS_WRITABLE_TYPES,
+                    "inputs": inputs if isinstance(inputs, list) else None,
+                    "outputs": outputs if isinstance(outputs, list) else None,
+                }
+            )
+        return payload
 
     def read_many(self, node_id: int, paths: list[str], timeout_s: float | None = None) -> dict[str, Any]:
         self.ensure_node_allowed(node_id)

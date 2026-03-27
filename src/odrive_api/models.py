@@ -19,6 +19,20 @@ class NodesResponse(BaseModel):
     nodes: list[int]
 
 
+class EndpointCatalogItem(BaseModel):
+    path: str
+    id: int
+    type: str
+    readable: bool
+    writable: bool
+    inputs: list[dict[str, Any]] | None = None
+    outputs: list[dict[str, Any]] | None = None
+
+
+class EndpointCatalogResponse(BaseModel):
+    endpoints: list[EndpointCatalogItem]
+
+
 class ReadSettingsResponse(BaseModel):
     node_id: int
     values: dict[str, Any]

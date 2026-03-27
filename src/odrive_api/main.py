@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from odrive_api.config import ODriveApiSettings
 from odrive_api.models import (
+    EndpointCatalogResponse,
     HealthResponse,
     NodeActionResponse,
     NodesResponse,
@@ -219,6 +220,53 @@ def create_app(settings: ODriveApiSettings | None = None, service: ODriveService
             raise _raise_api_error(500, "ODRIVE_INTERNAL_ERROR", message) from err
 
         _log_operation("list_nodes", success=True, status_code=200, start_s=started, node_count=len(payload.nodes))
+        return payload
+
+    @app.get("/api/v1/odrive/endpoints", response_model=EndpointCatalogResponse)
+    def list_endpoints(
+        authorization: str | None = Header(default=None, alias="Authorization"),
+        x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    ) -> EndpointCatalogResponse:
+        started = perf_counter()
+        _authorize_or_raise(
+            expected_token=resolved_settings.api_token,
+            operation="list_endpoints",
+            start_s=started,
+            authorization_header=authorization,
+            x_api_key_header=x_api_key,
+        )
+        try:
+            payload = EndpointCatalogResponse(endpoints=resolved_service.list_endpoint_catalog())
+        except RuntimeError as err:
+            message = str(err)
+            _log_operation(
+                "list_endpoints",
+                success=False,
+                status_code=503,
+                start_s=started,
+                error_code="ODRIVE_SERVICE_UNAVAILABLE",
+                error_message=message,
+            )
+            raise _raise_api_error(503, "ODRIVE_SERVICE_UNAVAILABLE", message) from err
+        except Exception as err:
+            message = f"Failed to list endpoints: {err}"
+            _log_operation(
+                "list_endpoints",
+                success=False,
+                status_code=500,
+                start_s=started,
+                error_code="ODRIVE_INTERNAL_ERROR",
+                error_message=message,
+            )
+            raise _raise_api_error(500, "ODRIVE_INTERNAL_ERROR", message) from err
+
+        _log_operation(
+            "list_endpoints",
+            success=True,
+            status_code=200,
+            start_s=started,
+            endpoint_count=len(payload.endpoints),
+        )
         return payload
 
     @app.get("/api/v1/odrive/nodes/{node_id}/settings", response_model=ReadSettingsResponse)
