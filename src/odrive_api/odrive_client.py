@@ -10,6 +10,8 @@ from typing import Any
 
 OPCODE_READ = 0x00
 OPCODE_WRITE = 0x01
+GET_VERSION_CMD_ID = 0x00
+GET_VERSION_PAYLOAD_SIZE = 8
 
 FORMAT_LOOKUP = {
     "bool": "?",
@@ -98,6 +100,52 @@ class ODriveClient:
                 is_extended_id=False,
             )
         )
+
+    def measure_response_time(
+        self,
+        node_id: int,
+        *,
+        sample_count: int,
+        interval_s: float,
+        timeout_s: float,
+    ) -> list[float | None]:
+        response_id = (node_id << 5) | GET_VERSION_CMD_ID
+        samples_ms: list[float | None] = []
+
+        for sample_index in range(sample_count):
+            self._flush_rx()
+            request = self.bus.message_factory(
+                arbitration_id=response_id,
+                data=b"",
+                is_extended_id=False,
+                is_remote_frame=True,
+                dlc=GET_VERSION_PAYLOAD_SIZE,
+            )
+            started = time.perf_counter()
+            self.bus.send(request)
+            deadline = started + timeout_s
+            measured_ms: float | None = None
+
+            while True:
+                remaining_s = deadline - time.perf_counter()
+                if remaining_s <= 0:
+                    break
+                message = self.bus.recv(timeout=min(0.02, remaining_s))
+                if message is None:
+                    continue
+                if (
+                    message.arbitration_id == response_id
+                    and not getattr(message, "is_remote_frame", False)
+                    and len(message.data) >= GET_VERSION_PAYLOAD_SIZE
+                ):
+                    measured_ms = (time.perf_counter() - started) * 1000.0
+                    break
+
+            samples_ms.append(measured_ms)
+            if sample_index + 1 < sample_count and interval_s > 0:
+                time.sleep(interval_s)
+
+        return samples_ms
 
     def read_many(self, node_id: int, paths: list[str], timeout_s: float = 0.25) -> dict[str, Any]:
         return {path: self.sdo_read(node_id, path, timeout_s=timeout_s) for path in paths}

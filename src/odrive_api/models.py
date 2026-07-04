@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class HealthResponse(BaseModel):
@@ -36,6 +36,28 @@ class EndpointCatalogResponse(BaseModel):
 class ReadSettingsResponse(BaseModel):
     node_id: int
     values: dict[str, Any]
+
+
+class ResponseTimeRequest(BaseModel):
+    samples: int = Field(default=20, ge=1, le=100)
+    interval_ms: float = Field(default=50.0, ge=10.0, le=1000.0)
+    timeout_ms: float = Field(default=100.0, ge=1.0, le=1000.0)
+
+
+class ResponseTimeResponse(BaseModel):
+    node_id: int
+    probe: str
+    command_id: int
+    sent: int
+    received: int
+    timeouts: int
+    interval_ms: float
+    timeout_ms: float
+    min_ms: float | None
+    median_ms: float | None
+    p95_ms: float | None
+    max_ms: float | None
+    samples_ms: list[float | None]
 
 
 class WriteSettingsRequest(BaseModel):

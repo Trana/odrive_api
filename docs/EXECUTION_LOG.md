@@ -215,3 +215,27 @@ Artifacts Updated
 Test Evidence
 - `pytest -q tests/test_api.py tests/test_service.py`
   - Result in this environment: `8 passed, 1 skipped`
+
+## 2026-07-04 - CAN Response-Time Probe API
+Summary
+- Added `POST /api/v1/odrive/nodes/{node_id}/response-time`.
+- Added serialized `Get_Version` RTR probing with configurable sample count, interval, and timeout.
+- Added min, median, p95, max, raw sample, and timeout reporting.
+- Kept probes inside the existing single CAN-operation lock.
+
+Artifacts Updated
+- `src/odrive_api/odrive_client.py`
+- `src/odrive_api/services/odrive_service.py`
+- `src/odrive_api/models.py`
+- `src/odrive_api/main.py`
+- `tests/test_odrive_client.py`
+- `tests/test_service.py`
+- `tests/test_api.py`
+- `tests/test_integration_mocked_can.py`
+- `README.md`
+- `docs/PRD.md`
+- `docs/ARCHITECTURE.md`
+
+Test Evidence
+- `/tmp/odrive-api-test-venv/bin/pytest -q`
+  - Passed: `40 passed`

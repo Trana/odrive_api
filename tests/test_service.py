@@ -23,6 +23,7 @@ class FakeClient:
         self.saved = []
         self.rebooted = []
         self.readback_override = None
+        self.response_time_samples = [0.8, 1.0, None, 1.2]
 
     def read_many(self, node_id: int, paths: list[str], timeout_s: float = 0.25):
         if self.readback_override is not None:
@@ -43,6 +44,9 @@ class FakeClient:
 
     def write_many(self, node_id: int, values: dict[str, object]):
         self.writes.append((node_id, values))
+
+    def measure_response_time(self, node_id: int, *, sample_count: int, interval_s: float, timeout_s: float):
+        return self.response_time_samples[:sample_count]
 
     def save_configuration(self, node_id: int):
         self.saved.append(node_id)
@@ -151,6 +155,24 @@ def test_read_many_validates_paths_and_count(tmp_path: Path):
 
     with pytest.raises(KeyError):
         service.read_many(11, ["unknown.path"])
+
+
+def test_response_time_returns_summary_and_timeouts(tmp_path: Path):
+    endpoints_path = _endpoints_file(tmp_path)
+    service = ODriveService(_settings(endpoints_path), bus_factory=lambda _a, _b: FakeBus(), client_factory=FakeClient)
+    service.start()
+
+    result = service.test_response_time(11, sample_count=4, interval_s=0.05, timeout_s=0.1)
+
+    assert result["node_id"] == 11
+    assert result["probe"] == "get_version"
+    assert result["sent"] == 4
+    assert result["received"] == 3
+    assert result["timeouts"] == 1
+    assert result["median_ms"] == 1.0
+    assert result["p95_ms"] == 1.18
+    assert result["max_ms"] == 1.2
+    assert result["samples_ms"] == [0.8, 1.0, None, 1.2]
 
 
 def test_write_many_coerces_types_and_can_verify_readback(tmp_path: Path):

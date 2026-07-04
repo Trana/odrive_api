@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from math import isclose
+from math import floor, isclose
+from statistics import median
 import threading
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,17 @@ _INT_RANGES: dict[str, tuple[int, int]] = {
 }
 _READABLE_TYPES = frozenset(FORMAT_LOOKUP.keys())
 _SETTINGS_WRITABLE_TYPES = frozenset({"bool", "float", *_INT_RANGES.keys()})
+
+
+def _percentile(values: list[float], percentile: float) -> float:
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = (len(ordered) - 1) * percentile
+    lower_index = floor(position)
+    upper_index = min(lower_index + 1, len(ordered) - 1)
+    fraction = position - lower_index
+    return ordered[lower_index] + ((ordered[upper_index] - ordered[lower_index]) * fraction)
 
 
 class ReadbackMismatchError(ValueError):
@@ -209,6 +221,51 @@ class ODriveService:
         client = self._require_client()
         return self.run_serialized(client.read_many, node_id, validated_paths, timeout_s=timeout)
 
+    def test_response_time(
+        self,
+        node_id: int,
+        *,
+        sample_count: int,
+        interval_s: float,
+        timeout_s: float,
+    ) -> dict[str, Any]:
+        self.ensure_node_allowed(node_id)
+        if not 1 <= sample_count <= 100:
+            raise ValueError("sample_count must be between 1 and 100")
+        if not 0.01 <= interval_s <= 1.0:
+            raise ValueError("interval_s must be between 0.01 and 1.0")
+        if not 0.001 <= timeout_s <= 1.0:
+            raise ValueError("timeout_s must be between 0.001 and 1.0")
+
+        client = self._require_client()
+        samples = self.run_serialized(
+            client.measure_response_time,
+            node_id,
+            sample_count=sample_count,
+            interval_s=interval_s,
+            timeout_s=timeout_s,
+        )
+        received_samples = [sample for sample in samples if sample is not None]
+
+        def rounded(value: float | None) -> float | None:
+            return None if value is None else round(value, 3)
+
+        return {
+            "node_id": node_id,
+            "probe": "get_version",
+            "command_id": 0,
+            "sent": len(samples),
+            "received": len(received_samples),
+            "timeouts": len(samples) - len(received_samples),
+            "interval_ms": round(interval_s * 1000.0, 3),
+            "timeout_ms": round(timeout_s * 1000.0, 3),
+            "min_ms": rounded(min(received_samples)) if received_samples else None,
+            "median_ms": rounded(median(received_samples)) if received_samples else None,
+            "p95_ms": rounded(_percentile(received_samples, 0.95)) if received_samples else None,
+            "max_ms": rounded(max(received_samples)) if received_samples else None,
+            "samples_ms": [rounded(sample) for sample in samples],
+        }
+
     def write_many(
         self,
         node_id: int,
@@ -279,8 +336,22 @@ def create_socketcan_bus(can_iface: str, can_bustype: str) -> Any:
         def send(self, message: Any) -> None:
             self._inner_bus.send(message)
 
-        def message_factory(self, *, arbitration_id: int, data: bytes, is_extended_id: bool) -> Any:
-            return can.Message(arbitration_id=arbitration_id, data=data, is_extended_id=is_extended_id)
+        def message_factory(
+            self,
+            *,
+            arbitration_id: int,
+            data: bytes,
+            is_extended_id: bool,
+            is_remote_frame: bool = False,
+            dlc: int | None = None,
+        ) -> Any:
+            return can.Message(
+                arbitration_id=arbitration_id,
+                data=data,
+                is_extended_id=is_extended_id,
+                is_remote_frame=is_remote_frame,
+                dlc=dlc,
+            )
 
         def shutdown(self) -> None:
             self._inner_bus.shutdown()

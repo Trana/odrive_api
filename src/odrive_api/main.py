@@ -17,6 +17,8 @@ from odrive_api.models import (
     NodeActionResponse,
     NodesResponse,
     ReadSettingsResponse,
+    ResponseTimeRequest,
+    ResponseTimeResponse,
     WriteSettingsRequest,
     WriteSettingsResponse,
 )
@@ -266,6 +268,93 @@ def create_app(settings: ODriveApiSettings | None = None, service: ODriveService
             status_code=200,
             start_s=started,
             endpoint_count=len(payload.endpoints),
+        )
+        return payload
+
+    @app.post("/api/v1/odrive/nodes/{node_id}/response-time", response_model=ResponseTimeResponse)
+    def test_response_time(
+        node_id: int,
+        request: ResponseTimeRequest,
+        authorization: str | None = Header(default=None, alias="Authorization"),
+        x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    ) -> ResponseTimeResponse:
+        started = perf_counter()
+        _authorize_or_raise(
+            expected_token=resolved_settings.api_token,
+            operation="test_response_time",
+            start_s=started,
+            node_id=node_id,
+            authorization_header=authorization,
+            x_api_key_header=x_api_key,
+        )
+        try:
+            payload = ResponseTimeResponse(
+                **resolved_service.test_response_time(
+                    node_id=node_id,
+                    sample_count=request.samples,
+                    interval_s=request.interval_ms / 1000.0,
+                    timeout_s=request.timeout_ms / 1000.0,
+                )
+            )
+        except PermissionError as err:
+            message = str(err)
+            _log_operation(
+                "test_response_time",
+                success=False,
+                status_code=403,
+                start_s=started,
+                node_id=node_id,
+                error_code="ODRIVE_NODE_NOT_ALLOWED",
+                error_message=message,
+            )
+            raise _raise_api_error(403, "ODRIVE_NODE_NOT_ALLOWED", message) from err
+        except ValueError as err:
+            message = str(err)
+            _log_operation(
+                "test_response_time",
+                success=False,
+                status_code=400,
+                start_s=started,
+                node_id=node_id,
+                error_code="ODRIVE_INVALID_REQUEST",
+                error_message=message,
+            )
+            raise _raise_api_error(400, "ODRIVE_INVALID_REQUEST", message) from err
+        except RuntimeError as err:
+            message = str(err)
+            _log_operation(
+                "test_response_time",
+                success=False,
+                status_code=503,
+                start_s=started,
+                node_id=node_id,
+                error_code="ODRIVE_SERVICE_UNAVAILABLE",
+                error_message=message,
+            )
+            raise _raise_api_error(503, "ODRIVE_SERVICE_UNAVAILABLE", message) from err
+        except Exception as err:
+            message = f"Failed to test response time: {err}"
+            _log_operation(
+                "test_response_time",
+                success=False,
+                status_code=500,
+                start_s=started,
+                node_id=node_id,
+                error_code="ODRIVE_INTERNAL_ERROR",
+                error_message=message,
+            )
+            raise _raise_api_error(500, "ODRIVE_INTERNAL_ERROR", message) from err
+
+        _log_operation(
+            "test_response_time",
+            success=True,
+            status_code=200,
+            start_s=started,
+            node_id=node_id,
+            received=payload.received,
+            timeouts=payload.timeouts,
+            median_ms=payload.median_ms,
+            p95_ms=payload.p95_ms,
         )
         return payload
 

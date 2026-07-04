@@ -46,10 +46,20 @@ uvicorn odrive_api.main:app --host 127.0.0.1 --port 8100 --reload
 - `GET /api/health`
 - `GET /api/v1/odrive/nodes`
 - `GET /api/v1/odrive/endpoints`
+- `POST /api/v1/odrive/nodes/{node_id}/response-time`
 - `GET /api/v1/odrive/nodes/{node_id}/settings?paths=axis0.controller.config.pos_gain,axis0.controller.config.vel_gain`
 - `POST /api/v1/odrive/nodes/{node_id}/settings`
 - `POST /api/v1/odrive/nodes/{node_id}/save`
 - `POST /api/v1/odrive/nodes/{node_id}/reboot`
+
+The response-time endpoint sends serialized `Get_Version` CAN remote frames and reports host-observed request/response round-trip statistics:
+```json
+{
+  "samples": 20,
+  "interval_ms": 50,
+  "timeout_ms": 100
+}
+```
 
 Write payload now supports optional readback verification:
 ```json

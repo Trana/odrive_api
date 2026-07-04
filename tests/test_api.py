@@ -17,6 +17,7 @@ class FakeService:
         self.writes = []
         self.saved = []
         self.rebooted = []
+        self.response_time_calls = []
         self.raise_on_read = None
         self.raise_on_write = None
         self.raise_on_save = None
@@ -67,6 +68,24 @@ class FakeService:
         if self.raise_on_read is not None:
             raise self.raise_on_read
         return {path: self.read_values.get(path, None) for path in paths}
+
+    def test_response_time(self, node_id: int, *, sample_count: int, interval_s: float, timeout_s: float):
+        self.response_time_calls.append((node_id, sample_count, interval_s, timeout_s))
+        return {
+            "node_id": node_id,
+            "probe": "get_version",
+            "command_id": 0,
+            "sent": sample_count,
+            "received": sample_count,
+            "timeouts": 0,
+            "interval_ms": interval_s * 1000.0,
+            "timeout_ms": timeout_s * 1000.0,
+            "min_ms": 0.7,
+            "median_ms": 0.9,
+            "p95_ms": 1.2,
+            "max_ms": 1.4,
+            "samples_ms": [0.9] * sample_count,
+        }
 
     def write_many(self, node_id: int, values: dict[str, object], verify_readback=False, readback_timeout_s=None):
         if self.raise_on_write is not None:
@@ -169,6 +188,38 @@ def test_cors_preflight_allows_browser_origin_for_odrive_routes():
     allowed_headers = response.headers.get("access-control-allow-headers", "").lower()
     assert "authorization" in allowed_headers
     assert "content-type" in allowed_headers
+
+
+def test_response_time_endpoint():
+    service = FakeService()
+    app = create_app(service=service)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/odrive/nodes/11/response-time",
+            json={"samples": 3, "interval_ms": 25, "timeout_ms": 80},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["node_id"] == 11
+    assert payload["probe"] == "get_version"
+    assert payload["sent"] == 3
+    assert payload["median_ms"] == 0.9
+    assert service.response_time_calls == [(11, 3, 0.025, 0.08)]
+
+
+def test_response_time_endpoint_validates_probe_limits():
+    service = FakeService()
+    app = create_app(service=service)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/odrive/nodes/11/response-time",
+            json={"samples": 0},
+        )
+
+    assert response.status_code == 422
 
 
 def test_read_settings_endpoint():

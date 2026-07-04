@@ -26,7 +26,7 @@ Define runtime topology, module boundaries, and contract constraints for the ODr
 - `odrive_api.config.ODriveApiSettings`
   - loads and validates env settings (`CAN_IFACE`, endpoints JSON path, allowlisted node IDs)
 - `odrive_api.odrive_client.ODriveClient`
-  - CAN protocol methods for endpoint read/write + save/reboot
+  - CAN protocol methods for endpoint read/write, `Get_Version` response-time probes, save, and reboot
 - `odrive_api.services.odrive_service.ODriveService`
   - owns one bus/client instance per process
   - serializes operations with process-local lock
@@ -37,6 +37,7 @@ Define runtime topology, module boundaries, and contract constraints for the ODr
 ## Concurrency Model
 - API may receive concurrent requests.
 - ODrive CAN request/reply flow is serialized by a single lock to avoid cross-request frame mixups.
+- Response-time tests use non-cyclic `Get_Version` RTR requests and run under the same lock; the reported duration includes host scheduling, CAN arbitration, and ODrive response processing.
 - Production worker count must stay at 1 for v1 (`uvicorn --workers 1`).
 
 ## Configuration Contract

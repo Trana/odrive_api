@@ -43,6 +43,7 @@ ODrive settings are currently managed through ad-hoc scripts. We need a robot-ho
 2. Phase 2: API contract
 - `GET /api/health`
 - `GET /api/v1/odrive/nodes`
+- `POST /api/v1/odrive/nodes/{node_id}/response-time`
 - `GET /api/v1/odrive/nodes/{node_id}/settings?paths=...`
 - `POST /api/v1/odrive/nodes/{node_id}/settings`
 - `POST /api/v1/odrive/nodes/{node_id}/save`

@@ -39,6 +39,9 @@ class MockClient:
     def write_many(self, node_id: int, values: dict[str, object]):
         self.state.update(values)
 
+    def measure_response_time(self, node_id: int, *, sample_count: int, interval_s: float, timeout_s: float):
+        return [0.75] * sample_count
+
     def save_configuration(self, node_id: int):
         self.saved_nodes.append(node_id)
 
@@ -129,6 +132,13 @@ def test_integration_happy_path_with_mocked_can(tmp_path: Path):
         values = read_response.json()["values"]
         assert values["axis0.controller.config.pos_gain"] == 35.0
         assert values["axis0.controller.config.enable_sensorless_mode"] is True
+
+        response_time_response = client.post(
+            "/api/v1/odrive/nodes/11/response-time",
+            json={"samples": 3, "interval_ms": 25, "timeout_ms": 80},
+        )
+        assert response_time_response.status_code == 200
+        assert response_time_response.json()["samples_ms"] == [0.75, 0.75, 0.75]
 
         save_response = client.post("/api/v1/odrive/nodes/11/save")
         reboot_response = client.post("/api/v1/odrive/nodes/11/reboot")
