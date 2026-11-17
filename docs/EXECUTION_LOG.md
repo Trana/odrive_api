@@ -239,3 +239,7 @@ Artifacts Updated
 Test Evidence
 - `/tmp/odrive-api-test-venv/bin/pytest -q`
   - Passed: `40 passed`
+
+## 2026-11-17 — Agent task guidance
+
+Linked active issues and cross-repository work tracking from the repository instructions. Checked that the entry distinguishes active issues from historical ticket files. See [Marvin issue 66](https://github.com/Trana/marvin_wiki/issues/66).
