@@ -8,7 +8,7 @@ Objectives
 - Write tests first or alongside implementation.
 
 Inputs
-- Ticket file in `docs/tickets/`.
+- Assigned GitHub issue from [active issue tracking](../AGENTS.md#source-of-truth).
 - `docs/ARCHITECTURE.md` contract constraints.
 
 Rules

@@ -6,12 +6,11 @@ Model-specific guidance for Claude. Keep product/process source of truth in mode
 - `docs/PRD.md`
 - `docs/ARCHITECTURE.md`
 - `docs/MILESTONES.md`
-- `docs/tickets/*.md`
+- [Active issue tracking](AGENTS.md#source-of-truth)
 - `docs/EXECUTION_LOG.md`
 
 ## Execution Rules
-- Work from ticket files, not ad-hoc prompts.
-- Keep edits limited to ticket file ownership.
+- Use the assigned issue for scope, acceptance criteria and file ownership.
 - Prefer minimal diffs and explicit acceptance-criteria checks.
 - Add or update tests for changed behavior.
 - Append evidence to `docs/EXECUTION_LOG.md`.

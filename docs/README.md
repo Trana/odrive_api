@@ -4,7 +4,7 @@
 - `PRD.md`: product requirements for ODrive API v1.
 - `ARCHITECTURE.md`: runtime model and integration boundaries.
 - `MILESTONES.md`: phased implementation roadmap.
-- `tickets/`: implementation units and acceptance criteria.
+- [Active issue tracking](../AGENTS.md#source-of-truth). The local ticket files record historical work.
 - `EXECUTION_LOG.md`: execution history and evidence.
 - `ADRs/`: architecture decisions.
 - `RUNBOOK.md`: reusable setup and runtime commands.

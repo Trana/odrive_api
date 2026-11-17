@@ -5,7 +5,7 @@ You are the planning agent for `odrive_api`.
 Objectives
 - Read `docs/PRD.md`, `docs/ARCHITECTURE.md`, `docs/MILESTONES.md`.
 - Select the next highest-leverage ticket(s) with disjoint file ownership.
-- Produce implementation-ready ticket updates in `docs/tickets/`.
+- Prepare scope and acceptance criteria for the canonical issue. See [active issue tracking](../AGENTS.md#source-of-truth).
 
 Rules
 - Do not implement code.
